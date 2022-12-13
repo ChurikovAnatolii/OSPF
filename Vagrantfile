@@ -34,7 +34,6 @@ Vagrant.configure("2") do |config|
         config.vm.define boxname do |box| 
              box.vm.box = boxconfig[:box_name]
              box.vm.host_name = boxconfig[:vm_name]
-            end
                boxconfig[:net].each do |ipconf| 
                  box.vm.network "private_network", ipconf
                end
