@@ -1,0 +1,86 @@
+frr version 8.1
+frr defaults traditional
+hostname {{ansible_hostname}}
+log syslog informational
+no ipv6 forwarding
+service integrated-vtysh-config
+
+    {% if ansible_hostname == "router1" %} 
+interface enp0s8
+description r1-r2
+ ip address {{ ansible_enp0s8.ipv4.address }}
+    {% elif ansible_hostname == "router2" %}
+interface enp0s8
+description r2-r1
+ ip address {{ ansible_enp0s8.ipv4.address }}
+ {% if ansible_hostname == "router2" and symmetric_routing == true %}
+ ip ospf cost 1000
+ {% endif %} 
+    {% elif ansible_hostname == "router3" %}
+interface enp0s9
+description r3-r1
+ ip address {{ ansible_enp0s9.ipv4.address }}
+    {% endif %} 
+{% if ansible_hostname == "router3" %}
+ ip ospf cost 1000
+{% else %}
+! ip ospf cost 1000
+{% endif %} 
+ ip ospf mtu-ignore
+ ip ospf hello-interval 10
+ ip ospf dead-interval 30
+
+  {% if ansible_hostname == "router1" %} 
+interface enp0s9
+description r1-r3
+    ip address {{ ansible_enp0s9.ipv4.address }}
+    {% elif ansible_hostname == "router2" %}
+interface enp0s9
+description r2-r3
+ ip address {{ ansible_enp0s9.ipv4.address }}
+    {% elif ansible_hostname == "router3" %}
+interface enp0s8
+description r3-r2
+ ip address {{ ansible_enp0s8.ipv4.address }}
+    {% endif %} 
+ ip ospf mtu-ignore
+ ip ospf hello-interval 10
+ ip ospf dead-interval 30
+
+interface enp0s10
+description net_router1
+    ip address {{ ansible_enp0s10.ipv4.address }}
+    ip ospf mtu-ignore
+    ip ospf hello-interval 10
+    ip ospf dead-interval 30
+
+router ospf
+    {% if ansible_hostname == "router1" %} 
+router-id 1.1.1.1 
+    {% elif ansible_hostname == "router2" %}
+router-id 2.2.2.2 
+    {% elif ansible_hostname == "router3" %}
+router-id 3.3.3.3
+    {% else %}
+!router-id
+    {% endif %} 
+   
+network 10.0.10.0/30 area 0 
+network 10.0.12.0/30 area 0 
+{% if ansible_hostname == "router1" %} 
+network 192.168.10.0/24 area 0
+    neighbor 10.0.12.2
+    neighbor 10.0.10.2
+{% elif ansible_hostname == "router2" %}
+network 10.0.11.0/30 area 0
+network 192.168.20.0/24 area 0
+    neighbor 10.0.10.1
+    neighbor 10.0.11.1
+{% elif ansible_hostname == "router3" %}
+network 10.0.11.0/30 area 0
+network 192.168.30.0/24 area 0
+    neighbor 10.0.12.1
+    neighbor 10.0.11.2
+ {% endif %} 
+   log file /var/log/frr/frr.log
+   default-information originate always
